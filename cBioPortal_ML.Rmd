@@ -1,0 +1,284 @@
+---
+title: "3.- Análisis estadistico y ML"
+author: "Iván López-Baltasar"
+date: "13/12/2020"
+output:
+  html_document:
+    highlight: default
+    number_sections: yes
+    theme: cosmo
+    toc: yes
+    toc_depth: 2
+  pdf_document:
+    highlight: zenburn
+    toc: yes
+  word_document: default
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval=T, echo=T)
+```
+
+******
+# Introducción
+******
+
+
+```{r librerias}
+library(ggplot2)
+library(dplyr)
+```
+
+
+```{r message= FALSE, warning=FALSE}
+
+dirML <- "C:/Users/LOPEZBALTASI/Documents/PERSONAL/UOC/TFM/cBIOPORTAL/ML/"
+fichero <- paste(dirML,"expression_y_clinica_firma_3_cancer_2000.csv",sep="")
+
+datos<-read.csv(fichero,header=T,sep="\t", stringsAsFactors = F)
+
+#FACTORIZAMOS LAS VARIABLES NECESARIAS
+datos$OS_STATUS  <- as.factor(datos$OS_STATUS)
+datos$DFS_STATUS  <- as.factor(datos$DFS_STATUS)
+summary(datos)
+
+datos.bp <-boxplot(datos$OS_MONTHS, main="Boxplot OS_MONTHS", horizontal = T)  
+datos.bp
+
+cat("OUTLIERS de la variable OS_MONTHS")
+boxplot.stats(datos$OS_MONTHS)$out
+
+
+```
+
+
+# Análisis de correlaciones.
+
+Nos vamos a quedar con aquellos registros que presentan recurrencia
+
+```{r message= FALSE, warning=FALSE}
+datos_recurrencia <- datos[datos$DFS_STATUS =="1:Recurred/Progressed",]
+summary(datos_recurrencia)
+
+#Crearemos una variable dummy a la que llamaremos DFS_STATUS_DUMMY que tome el valor 1 si el paciente tiene recurrencia y 0 en caso contrario y lo mismo con OS_STATUS
+
+datos_recurrencia$OS_STATUS_DUMMY[datos_recurrencia$OS_STATUS=="0:LIVING"]=0
+datos_recurrencia$OS_STATUS_DUMMY[datos_recurrencia$OS_STATUS=="1:DECEASED"]=1
+summary(datos_recurrencia$OS_STATUS_DUMMY)
+
+#nos quedamos con las columnas numericas
+datos_recurrencia <- subset(datos_recurrencia, select = -c(OS_STATUS  , DFS_STATUS))
+#summary(datos_recurrencia)
+
+#vamos a normalizar los datos
+normalize <- function(x) {return ((x - min(x)) / (max(x) - min(x))) }
+datos_recurrencia_n <- as.data.frame(lapply(datos_recurrencia, normalize))
+summary(datos_recurrencia_n)
+
+res <- cor(datos_recurrencia_n)
+res <- round(res,2)
+
+library(corrplot)
+#correlograma
+corrplot(res, type = "upper", order = "hclust", 
+         tl.col = "black",  tl.cex = 0.5)
+
+resdf <- as.data.frame(as.table(res))
+resdf1 <- subset(resdf, abs(Freq) > 0.15)
+resdf1
+
+```
+
+Revisando las correlaciones más altas en valor absoluto, de la variable OS_MONTHS (Overall survival in months), se observa que tiene correlación negativa con la edad de diagnóstico (-0.31), MYO1D (-0.22), PLCB2(-0.18), BAMBI (-0.16) y positiva con ST7L(0.29) GP2,LRRC49 (0.27),  AZU1 (0.19), TDRD7, LYPD6  (0.17) y PLEKHA3 (0.16).
+
+
+Filtrar las correlaciones superiores a 0.75 en valor absoluto.
+
+```{r message= FALSE, warning=FALSE}
+
+resdf2 <- subset(resdf, abs(Freq) > 0.75)
+resdf2
+
+```
+
+Revisando las correlaciones más altas tenemos:
+
+IL1A        F3 0.76  
+VEGFC       F3 0.76  
+VEGFC     IL1A 0.85  
+SRPX      FLNC 0.85  
+FLNC      SRPX 0.85  
+
+
+# Análisis de covarianzas
+
+```{r message= FALSE, warning=FALSE}
+
+#matriz_cov <- var(datos_recurrencia_n)
+#matriz_cov
+
+```
+
+# Análisis de componentes principales
+
+Obtenemos las componentes principales con la matriz de correlación (Método por defecto Pearson). 
+
+
+En primer lugar utilizamos la muestra completa.
+```{r message= FALSE, warning=FALSE}
+
+#utilizamos todas las muestras, nos quedamos con las columnas numericas
+datosnumericos <- subset(datos, select = -c(DFS_STATUS, OS_STATUS  , DFS_STATUS))
+pca.datosnumericos <-  prcomp(datosnumericos,scale=T) # Scale = True 
+
+```
+
+
+
+Vemos la varianza explicada de cada componente y la proporcion acumulada  
+
+
+```{r message= FALSE, warning=FALSE}
+summary(pca.datosnumericos)
+
+
+prop_varianza <- pca.datosnumericos$sdev^2 / sum(pca.datosnumericos$sdev^2)
+#prop_varianza
+ggplot(data = data.frame(prop_varianza, pc = 1:48),
+      aes(x = pc, y = prop_varianza)) +
+  geom_col(width = 0.3) +
+  scale_y_continuous(limits = c(0,1)) +
+  theme_bw() +
+  labs(x = "Componente principal",
+       y = "Prop. de varianza explicada")
+
+prop_varianza_acum <- cumsum(prop_varianza)
+#prop_varianza_acum
+
+
+ggplot(data = data.frame(prop_varianza_acum, pc = 1:48),
+       aes(x = pc, y = prop_varianza_acum, group = 1)) +
+  geom_point() +
+  geom_line() +
+  theme_bw() +
+  labs(x = "Componente principal",
+       y = "Prop. varianza explicada acumulada")
+```
+
+Vemos que no hay ninguna componente que tenga mucho peso en la varianza, se necesitan 46 de las 48 componentes para explicar el 99% de la varianza observada.
+
+
+Ahora utilizamos solamente datos con recurrencia
+
+```{r message= FALSE, warning=FALSE}
+
+
+#solo datos recurrencia
+pca.datos_recurrencia <- prcomp(datos_recurrencia,scale=T) # Scale = True 
+#pca.datos_recurrencia
+#plot(pca.datos_recurrencia)
+
+#pca.datos_recurrencia$rotation
+```
+
+
+
+Vemos la varianza explicada de cada componente y la proporcion acumulada  
+
+
+```{r message= FALSE, warning=FALSE}
+summary(pca.datos_recurrencia)
+
+
+prop_varianza <- pca.datos_recurrencia$sdev^2 / sum(pca.datos_recurrencia$sdev^2)
+#prop_varianza
+ggplot(data = data.frame(prop_varianza, pc = 1:49),
+      aes(x = pc, y = prop_varianza)) +
+  geom_col(width = 0.3) +
+  scale_y_continuous(limits = c(0,1)) +
+  theme_bw() +
+  labs(x = "Componente principal",
+       y = "Prop. de varianza explicada")
+
+prop_varianza_acum <- cumsum(prop_varianza)
+#prop_varianza_acum
+
+
+ggplot(data = data.frame(prop_varianza_acum, pc = 1:49),
+       aes(x = pc, y = prop_varianza_acum, group = 1)) +
+  geom_point() +
+  geom_line() +
+  theme_bw() +
+  labs(x = "Componente principal",
+       y = "Prop. varianza explicada acumulada")
+```
+
+En este caso tampoco hay ninguna componente que tenga mucho peso en la varianza, pero se necesitan menos para explicar el 99% de la varianza observada (40 de 48).
+
+
+# Regresión Lineal
+
+Vamos a querer cuantificar el valor estimado de supervivencia en meses (OS_MONTHS) mediante un análisis de regresión lineal.
+```{r message= FALSE, warning=FALSE}
+#nos quedamos 
+datos_lm <- subset(datos, select = -c(OS_STATUS, DFS_STATUS))
+datos_lm_n <- as.data.frame(lapply(datos_lm, normalize))
+dim (datos_lm_n)  
+#str(datos_lm)
+```
+
+Para evaluar el modelo predictivo, vamos a dividir las observaciones en dos grupos, uno de entrenamiento para ajustar el modelo (70% de los datos) y uno de test (30% de los datos)  
+
+
+```{r message= FALSE, warning=FALSE}
+training <- sample_frac(datos_lm_n, .7)
+test <- setdiff(datos_lm_n, training)
+
+modelo <- lm(formula=OS_MONTHS ~ ., data = training)
+summary(modelo)
+```
+
+En la información devuelta por summary, vemos que el coeficiente de determinación $R^2$ es muy bajo con lo que nuestro modelo, no predice bien el tiempo de supervivencia.
+
+Vamos ahora a añadir la variable cualitativa DFS_STATUS que nos indica si tenemos recurrencia en la enfermedad.
+En primer lugar crearemos una variable dummy a la que llamaremos DFS_STATUS_DUMMY que tome el valor 1 si el paciente tiene recurrencia y 0 en caso contrario
+
+
+```{r message= FALSE, warning=FALSE}
+datos_lm <- subset(datos, select = -c(OS_STATUS,DFS_STATUS))
+
+datos_lm$DFS_STATUS_DUMMY[datos$DFS_STATUS=="0:DiseaseFree"]=0
+datos_lm$DFS_STATUS_DUMMY[datos$DFS_STATUS=="1:Recurred/Progressed"]=1
+str(datos_lm$DFS_STATUS_DUMMY)
+
+modelo <- lm(data = datos_lm, formula = OS_MONTHS ~ .)
+
+summary(modelo)
+
+```
+
+El coeficiente de determinación ha aumentado ligeramente pero sigue siendo muy bajo, nuestro modelo no sirve para predecir el tiempo de supervivencia.
+
+
+Ahora vamos a realizar un modelo solamente con los pacientes que tienen recurrencia.
+
+```{r message= FALSE, warning=FALSE}
+datos_lm_recurrencia <- datos_lm[datos_lm$DFS_STATUS_DUMMY==1,]
+datos_lm_recurrencia <- subset(datos_lm_recurrencia, select = -c(DFS_STATUS_DUMMY))
+modelo <- lm(data = datos_lm_recurrencia, formula = OS_MONTHS ~ .)
+
+summary(modelo)
+
+```
+
+Ahora vamos a realizar un modelo solamente con las variables con los valores más altos obtenidos en la matriz de correlaciones.
+
+```{r message= FALSE, warning=FALSE}
+modelo <- lm(data = datos_lm, formula = OS_MONTHS ~ D_EDAD+MYO1D+PLCB2+BAMBI+ST7L+GPD2+LRRC49 +AZU1+TDRD7+LYPD6+PLEKHA3+DFS_STATUS_DUMMY )
+
+summary(modelo)
+
+```
+
+

@@ -1,0 +1,100 @@
+---
+title: "Obtener los genes en comun up regulated y down regulated para datasets con CSC de cancer de mama y páncreas"
+author: "Iván López-Baltasar"
+date: "25/4/2020"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+voy a obtener los genes comunes en los analisis de datasets de celulas madre de BC(GSE25976) y cancer de pancreas
+(GSE51971). Se obtienen de los ficheros ranked
+```{r ficheros}
+library(data.table)
+library(tibble)
+
+dirWork <- './data/work/'
+
+guardar_top_50 <- function (prefijo, rankedFich, dirWork){
+  ranked <- read.csv(rankedFich,  sep="\t", header=TRUE, stringsAsFactors = FALSE)
+  summary(ranked)
+  ranked <- ranked[,1:3]
+  summary(ranked)
+  upregulated <- head(ranked,2000)
+  downregulated <- tail(ranked,2000)
+  
+  write.csv(upregulated, paste(dirWork, prefijo, 'upregulated.csv',sep=""), row.names = F, quote = T,sep = '\t')
+  write.csv(downregulated, paste(dirWork,prefijo, 'downregulated.csv',sep=""), row.names = F, quote = T,sep = '\t')
+  result <- list(upregulated, downregulated)
+}
+
+
+
+#TERCER DATASET BC GSE25976
+dirGSEA_BCSC <- 'C:/Users/LOPEZBALTASI/gsea_home/output/nov22/BCSCs.Gsea.1606036652985/'
+fichero <- paste(dirGSEA_BCSC,'ranked_gene_list_HIGH_METASTATIC_versus_MDA-MB-231_1606036652985.tsv', sep="")
+
+BCSC <- guardar_top_50("GSE25976-", fichero, dirWork)
+
+
+#dataset GSE51971
+dirGSEA_PC <- 'C:/Users/LOPEZBALTASI/gsea_home/output/nov22/PC_38_332_421.Gsea.1606035391916/'
+fichero <- paste(dirGSEA_PC,'ranked_gene_list_CSLCs_versus_REST_1606035391916.tsv', sep="")
+
+PC_38_332_421 <- guardar_top_50("GSE51971-", fichero, dirWork)
+
+
+#colon dataset GSE118949
+dirGSEA_PC <- 'C:/Users/LOPEZBALTASI/gsea_home/output/dec13/colon.Gsea.1607857480233/'
+fichero <- paste(dirGSEA_PC,'ranked_gene_list_REST_versus_FGFR_INHIBITION_1607857480233.tsv', sep="")
+
+#colon dataset GSE130750
+dirGSEA_PC <- 'C:/Users/LOPEZBALTASI/gsea_home/output/dec13/colon.Gsea.1607859000668/'
+fichero <- paste(dirGSEA_PC,'ranked_gene_list_CSC_versus_NO_CSC_1607859000668.tsv', sep="")
+
+COLON <- guardar_top_50("GSE130750-", fichero, dirWork)
+
+
+
+```
+
+```{r message= FALSE, warning=FALSE}
+upBC <- BCSC[[1]]
+downBC <- BCSC[[2]]
+
+upPC <- PC_38_332_421[[1]]
+downPC <- PC_38_332_421[[2]]
+
+upCOLON <- COLON[[1]]
+downCOLON <- COLON[[2]]
+
+
+#SACAR LOS GENES EN COMUN
+upComun <- upPC[upPC$NAME %in% upBC$NAME, ]
+upComun <- upCOLON[upCOLON$NAME %in% upComun$NAME,1]
+head(upComun,50)
+#escribir upregulated
+write.csv(upComun, paste(dirWork, 'upregulated_comun.csv',sep=""), row.names = F, quote = T,sep = '\t')
+
+downComun <- downPC[downPC$NAME %in% downBC$NAME,]
+downComun <- downCOLON[downCOLON$NAME %in% downComun$NAME,1]
+tail(downComun,50)
+write.csv(downComun, paste(dirWork, 'downregulated_comun.csv',sep=""), row.names = F, quote = T, sep = '\t')
+
+```
+
+
+```{r message= FALSE, warning=FALSE}
+upComun <- read.csv(paste(dirWork, 'upregulated_comun.csv',sep=""),  sep="\t", header=TRUE, stringsAsFactors = FALSE)
+downComun <- read.csv(paste(dirWork, 'downregulated_comun.csv',sep=""),  sep="\t", header=TRUE, stringsAsFactors = FALSE)
+library(dplyr)
+new_df <- bind_rows(upComun, downComun)
+new_df
+write.csv(new_df[,1],paste(dirWork, 'firmaComun_3_cancer_2000.csv',sep=""), row.names = F,quote = FALSE)
+
+```

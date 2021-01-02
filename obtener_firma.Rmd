@@ -1,0 +1,114 @@
+---
+title: "pruebas"
+author: "Iván López-Baltasar"
+date: "25/4/2020"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+
+```{r ficheros}
+library(data.table)
+library(tibble)
+
+dirWork <- './data/work/'
+
+guardar_top_50 <- function (prefijo, rankedFich, dirWork){
+  ranked <- read.csv(rankedFich,  sep="\t", header=TRUE, stringsAsFactors = FALSE)
+  summary(ranked)
+  ranked <- ranked[,1:3]
+  summary(ranked)
+  upregulated <- head(ranked,5000)
+  downregulated <- tail(ranked,5000)
+  
+  write.csv(upregulated, paste(dirWork, prefijo, 'upregulated.csv',sep=""), row.names = F, quote = F)
+  write.csv(downregulated, paste(dirWork,prefijo, 'downregulated.csv',sep=""), row.names = F, quote = F)
+  result <- list(upregulated, downregulated)
+}
+
+#PRIMER DATASET BC GSE42568
+#dirGSEA_BC_C2 <- 'C:/Users/LOPEZBALTASI/gsea_home/output/nov09/BC_C2.Gsea.1604947684308/'
+#fichero <- paste(dirGSEA_BC_C2,'ranked_gene_list_TUMOR_versus_NORMAL_1604947684308.tsv', sep="")
+#dirGSEA_BC_C2 <- 'C:/Users/LOPEZBALTASI/gsea_home/output/nov14/BC_C2_PLUS.Gsea.1605436914493/'
+#fichero <- paste(dirGSEA_BC_C2,'ranked_gene_list_TUMOR_versus_NORMAL_1605436914493.tsv', sep="")
+
+dirGSEA_BC_C2 <- 'C:/Users/LOPEZBALTASI/gsea_home/output/nov14/BC_CUSTOM_GL.Gsea.1605443476991/'
+fichero <- paste(dirGSEA_BC_C2,'ranked_gene_list_TUMOR_versus_NORMAL_1605443476991.tsv', sep="")
+
+BC_C2 <- guardar_top_50("BC_C2-", fichero, dirWork)
+
+#SEGUNDO DATASET BC GSE5764
+dirGSEA_BC2_C2 <- 'C:/Users/LOPEZBALTASI/gsea_home/output/nov14/BC2_CUSTOM_GL.Gsea.1605443999569/'
+fichero <- paste(dirGSEA_BC2_C2,'ranked_gene_list_TUMOR_versus_NORMAL_1605443999569.tsv', sep="")
+
+BC2_C2 <- guardar_top_50("BC2_C2-", fichero, dirWork)
+
+
+#TERCER DATASET BC GSE25976
+dirGSEA_BCSC <- 'C:/Users/LOPEZBALTASI/gsea_home/output/nov22/BCSCs.Gsea.1606036652985/'
+fichero <- paste(dirGSEA_BCSC,'ranked_gene_list_HIGH_METASTATIC_versus_MDA-MB-231_1606036652985.tsv', sep="")
+
+BCSC <- guardar_top_50("BCSC-", fichero, dirWork)
+
+
+dirGSEA_PDAC_C2 <- 'C:/Users/LOPEZBALTASI/gsea_home/output/nov14/PDAC_CUSTOM_GL.Gsea.1605443743169/'
+fichero <- paste(dirGSEA_PDAC_C2,'ranked_gene_list_TUMOR_versus_NORMAL_1605443743169.tsv', sep="")
+
+PDAC_C2 <- guardar_top_50("PDAC_C2-", fichero, dirWork)
+
+
+#dataset GSE51971
+dirGSEA_PC <- 'C:/Users/LOPEZBALTASI/gsea_home/output/nov22/PC_38_332_421.Gsea.1606035391916/'
+fichero <- paste(dirGSEA_PC,'ranked_gene_list_CSLCs_versus_REST_1606035391916.tsv', sep="")
+
+PC_38_332_421 <- guardar_top_50("PC_38_332_421-", fichero, dirWork)
+
+
+
+```
+
+```{r message= FALSE, warning=FALSE}
+upBC <- BC_C2[[1]]
+downBC <- BC_C2[[2]]
+
+upBC2 <- BC2_C2[[1]]
+downBC2 <- BC2_C2[[2]]
+
+upPDAC <- PDAC_C2[[1]]
+downPDAC <- PDAC_C2[[2]]
+
+upPC <- PC_38_332_421[[1]]
+downPC <- PC_38_332_421[[2]]
+
+
+#SACAR LOS GENES EN COMUN
+upComun <- upPDAC[upPDAC$NAME %in% upBC$NAME,]
+upComun <- upBC2[upBC2$NAME %in% upComun$NAME,]
+upComun <- upPC[upPC$NAME %in% upComun$NAME,]
+str(upComun)
+head(upComun,50)
+
+downComun <- downPDAC[downPDAC$NAME %in% downBC$NAME,]
+downComun <- downBC2[downBC2$NAME %in% downComun$NAME,]
+downComun <- downPC[downPC$NAME %in% downComun$NAME,]
+str(downComun)
+tail(downComun[,1],50)
+#fwrite(upComun[,1], paste(dirWork, 'upComun.csv',sep=""), sep = "\t")
+#fwrite(downComun[,1], paste(dirWork, 'downComun.csv',sep=""), sep = "\t")
+```
+
+```{r message= FALSE, warning=FALSE}
+
+library(dplyr)
+new_df <- bind_rows(upComun, downComun)
+new_df
+write.csv(new_df[,1],paste(dirWork, 'firmaComun.csv',sep=""), row.names = F,quote = FALSE)
+
+```

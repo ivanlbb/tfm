@@ -1,0 +1,79 @@
+---
+title: "2.- TRASPONER LA MATRIZ DE EXPRESION CON DATOS CLINICOS Y FIRMA GENERADO EN cBioPortal.Rdm"
+author: "Iván López-Baltasar"
+date: "25/4/2020"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+cargar datos de cbioportal
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval=T, echo=T)
+```
+
+
+```{r librerias}
+library(data.table)
+library(tibble)
+
+```
+
+
+```{r message= FALSE, warning=FALSE}
+dirData <- "C:/Users/LOPEZBALTASI/Documents/PERSONAL/UOC/TFM/cBIOPORTAL/brca_tcga_pan_can_atlas_2018/"
+
+#fichero <- paste(dirData,"data_RNA_Seq_v2_expression_firma_2_cancer.csv",sep="");
+fichero <- paste(dirData,"data_RNA_Seq_v2_expression_firma_3_cancer_2000.csv",sep="");
+datos<-read.csv(fichero,header=T,sep="\t", stringsAsFactors = F)
+
+#str(datos)
+
+```
+
+```{r message= FALSE, warning=FALSE}
+
+# We create a new dataframe using the transpose of a matrix
+# The first column is actually the row names
+rownames(datos) <- datos$X
+datos$X <- NULL
+#head(datos,3)
+#str(datos)
+rownames(datos)
+
+# We create a new dataframe using the transpose of a matrix
+datos_transpose <- as.data.frame(t(as.matrix(datos)))
+#str(datos_transpose)
+#data_transpose <-transpose(datos)
+#str(data_transpose)
+colnames(datos_transpose)
+#guardar el fichero 
+fwrite(datos_transpose, paste(dirData,"data_RNA_Seq_v2_expression_firma_3_cancer_2000_t.csv",sep=""), sep = "\t")
+```
+
+```{r message= FALSE, warning=FALSE}
+fichero <- paste(dirData,"data_RNA_Seq_v2_expression_firma_3_cancer_2000_t.csv",sep="")
+datos<-read.csv(fichero,header=T,sep="\t", stringsAsFactors = F)
+#limpiar los nulos
+#Comprobamos que los valores vacíos o nulos.
+colSums(is.na(datos))
+colSums(datos=="")
+
+
+# Limpiamos OS_MONTHS y DFS_STATUS
+
+datos <- datos[!is.na(datos$OS_MONTHS), ]
+datos <- datos[datos$DFS_STATUS!="" , ]
+datos <- datos[datos$OS_MONTHS>0, ]
+str(datos)
+
+#guardamos el fichero que contiene los datos de expresion de aquellos genes de la firma común junto con los datos de clinica
+dirML <- "C:/Users/LOPEZBALTASI/Documents/PERSONAL/UOC/TFM/cBIOPORTAL/ML/"
+fwrite(datos, paste(dirML,"expression_y_clinica_firma_3_cancer_2000.csv",sep=""), sep = "\t")
+
+
+```
+
+

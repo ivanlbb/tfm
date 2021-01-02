@@ -1,0 +1,114 @@
+---
+title: "Leer los ficheros de DAVID para obtener agrupar los genes en función de su p-value"
+author: "Iván López-Baltasar"
+date: "25/4/2020"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+cargar datos de cbioportal
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval=T, echo=T)
+```
+
+
+```{r librerias}
+library(data.table)
+library(tibble)
+library(ggplot2)
+
+```
+
+
+```{r message= FALSE, warning=FALSE}
+dirData <- "C:/Users/LOPEZBALTASI/Documents/PERSONAL/UOC/TFM/DAVID/FUNTIONAL_ANNOTATION/"
+DISEASE<-read.csv(paste(dirData, 'DISEASE/GAD_DISEASE.txt',sep=""),header=T,sep="\t", stringsAsFactors = F)
+
+#factorizar Term
+DISEASE$Term <- as.factor(DISEASE$Term)
+#DISEASE <- DISEASE[DISEASE$Count>10,]
+DISEASE_01 <- DISEASE[DISEASE$PValue < 0.1,]
+DISEASE_005 <- DISEASE[DISEASE$PValue < 0.05,]
+DISEASE_001 <- DISEASE[DISEASE$PValue < 0.01,]
+#str(GO_BP_01)
+#str(GO_BP_005)
+str(DISEASE_001)
+
+```
+
+Ahora voy a escribir en una "tabla" todos los genes que aparecen en cada registro
+
+```{r message= FALSE, warning=FALSE}
+
+library(writexl)
+
+#write_xlsx(x = DISEASE, path = paste(dirData, 'DISEASE_TERM.xlsx',sep=""), col_names = TRUE)
+#write_xlsx(x = DISEASE_01, path = paste(dirData, 'DISEASE_TERM_01.xlsx',sep=""), col_names = TRUE)
+#write_xlsx(x = DISEASE_005, path = paste(dirData, 'DISEASE_TERM_05.xlsx',sep=""), col_names = TRUE)
+#write_xlsx(x = DISEASE_001, path = paste(dirData, 'DISEASE_TERM_001.xlsx',sep=""), col_names = TRUE)
+
+
+```
+
+```{r message= FALSE, warning=FALSE}
+
+procesarFA <- function (fichero, prefijo, dirData){
+  FUNCT_ANN<-read.csv(fichero,header=T,sep="\t", stringsAsFactors = F)
+  
+  #factorizar Term
+  FUNCT_ANN$Term <- as.factor(FUNCT_ANN$Term)
+
+  #FUNCT_ANN_01 <- FUNCT_ANN[FUNCT_ANN$PValue < 0.1,]
+  #FUNCT_ANN_005 <- FUNCT_ANN[FUNCT_ANN$PValue < 0.05,]
+  #FUNCT_ANN_001 <- FUNCT_ANN[FUNCT_ANN$PValue < 0.01,]
+  
+  #write_xlsx(x = FUNCT_ANN, path = paste(dirData, prefijo,'.xlsx',sep=""), col_names = TRUE)
+  #write_xlsx(x = FUNCT_ANN_01, path = paste(dirData, prefijo,'_01.xlsx',sep=""), col_names = TRUE)
+  #write_xlsx(x = FUNCT_ANN_005, path = paste(dirData, prefijo,'_005.xlsx',sep=""), col_names = TRUE)
+  #write_xlsx(x = FUNCT_ANN_001, path = paste(dirData, prefijo,'_001.xlsx',sep=""), col_names = TRUE)
+  return <- FUNCT_ANN
+}
+
+fichero = paste(dirData, 'DISEASE/GAD_DISEASE_CLASS.txt',sep="")
+disesase_class <- procesarFA(fichero, "DISEASE_CLASS_TERM",dirData)
+
+disease <- rbind(DISEASE,disesase_class)
+write_xlsx(x = disease, path = paste(dirData, 'DISEASE','.xlsx',sep=""), col_names = TRUE)
+
+fichero = paste(dirData, 'FUNCTIONAL_CATEGORIES/COG_ONTOLOGY.txt',sep="")
+fc_1 <- procesarFA(fichero, "COG_ONTOLOGY_TERM",dirData)
+
+fichero = paste(dirData, 'FUNCTIONAL_CATEGORIES/PIR_SEQ_FEATURE.txt',sep="")
+fc_2 <- procesarFA(fichero, "PIR_SEQ_FEATURE_TERM",dirData)
+
+fichero = paste(dirData, 'FUNCTIONAL_CATEGORIES/SP_COMMENT_TYPE.txt',sep="")
+fc_3 <- procesarFA(fichero, "SP_COMMENT_TYPE_TERM",dirData)
+
+fichero = paste(dirData, 'FUNCTIONAL_CATEGORIES/UP_KEYWORDS.txt',sep="")
+fc_4 <-procesarFA(fichero, "UP_KEYWORDS_TERM",dirData)
+
+fichero = paste(dirData, 'FUNCTIONAL_CATEGORIES/UP_SEQ_FEATURE.txt',sep="")
+fc_5 <- procesarFA(fichero, "UP_SEQ_FEATURE_TERM",dirData)
+
+fc <- rbind(fc_1,fc_2,fc_3,fc_4,fc_5)
+write_xlsx(x = fc, path = paste(dirData, 'FUNCTIONAL_CATEGORIES','.xlsx',sep=""), col_names = TRUE)
+
+#pathways
+fichero = paste(dirData, 'PATHWAYS/BIOCARTA.txt',sep="")
+pw1<-procesarFA(fichero, "BIOCARTA_TERM",dirData)
+
+fichero = paste(dirData, 'PATHWAYS/EC_NUMBER.txt',sep="")
+pw2<-procesarFA(fichero, "EC_NUMBER_TERM",dirData)
+
+fichero = paste(dirData, 'PATHWAYS/KEGG_PATHWAY.txt',sep="")
+pw3<-procesarFA(fichero, "KEGG_PATHWAY_TERM",dirData)
+
+fichero = paste(dirData, 'PATHWAYS/REACTOME_PATHWAY.txt',sep="")
+pw4<-procesarFA(fichero, "REACTOME_PATHWAY_TERM",dirData)
+pw <- rbind(pw1,pw2,pw3,pw4)
+write_xlsx(x = pw, path = paste(dirData, 'PATHWAYS','.xlsx',sep=""), col_names = TRUE)
+```
+
