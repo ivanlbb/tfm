@@ -11,7 +11,8 @@
 * david_3.Rmd: Procesamiento de los ficheros generados por DAVID para su posterior carga en Tableau (Firma 3)
 * cBioPortal.Rmd: Obtener un fichero de expresión con datos clínicos y con los genes presentes en la firma.
 * cBioPortal_TRASPONER_MATRIZ_EXPRESION.Rmd: Trasponer la matriz de expresión generada en cBioPortal.Rmd
-* cBioPortal_ML.Rmd: Análisis estadístico y ML
-* cBioportal_RF.ipynb: 
-* cBioportal_OS_MONTHS.ipynb
+* cBioPortal_ML.Rmd: Análisis estadístico y ML. 
+* cBioportal.ipynb: Red neuronal
+* cBioportal_RF.ipynb: Decision tree, Random Forest, Gradient Boosting
+
 
