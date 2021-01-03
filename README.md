@@ -15,4 +15,7 @@
 * cBioportal.ipynb: Red neuronal
 * cBioportal_RF.ipynb: Decision tree, Random Forest, Gradient Boosting
 
-
+### Directorios
+* BCCSC-mda-mb-231_231BoM-1833: Ficheros necesarios para el análisis con GSEA de los datos de expresión de cáncer de mama
+* PC: Ficheros necesarios para el análisis con GSEA de los datos de expresión de cáncer de páncreas
+* GSE130750: Ficheros necesarios para el análisis con GSEA de los datos de expresión de cáncer colorectal
